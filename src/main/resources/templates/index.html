@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+
+    <link type="text/css" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jsgrid/1.5.3/jsgrid.min.css"/>
+    <link type="text/css" rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/jsgrid/1.5.3/jsgrid-theme.min.css"/>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jsgrid/1.5.3/jsgrid.min.js"></script>
+</head>
+<body>
+
+<form id="formInput" method="get" action="/search" th:object="${tutorialReq}" autocomplete="off">
+    <input type="text" th:field="*{title}" placeholder="title">
+    <br>
+    <input type="text" th:field="*{description}" placeholder="description">
+    <br>
+    <select th:field="*{status}">
+        <option value="">Choose</option>
+        <option value="ACTIVE">ACTIVE</option>
+        <option value="INACTIVE">INACTIVE</option>
+    </select>
+    <br>
+    <select th:field="*{published}">
+        <option value="">Choose</option>
+        <option value="true">True</option>
+        <option value="false">False</option>
+    </select>
+    <br>
+    <button type="submit">Search</button>
+</form>
+<br>
+<h2 id="exception"></h2>
+<div id="jsGrid1"></div>
+<script>
+
+    let h2 = $("#exception");
+
+    function isBlank(str) {
+        return (!str || /^\s*$/.test(str));
+    }
+
+    let page = 0;
+    var dataForm;
+
+    function dataFromToJsonObject() {
+        let arrayData = $('#formInput').serializeArray();
+        var object = {};
+        $.each(arrayData, function (i, v) {
+            if (isBlank(v.value)) {
+                object["" + v.name + ""] = null;
+            } else {
+                object["" + v.name + ""] = v.value;
+            }
+
+        });
+        object.page = page;
+        object.size = '10';
+        return object;
+
+    }
+
+    $(function () {
+        $("#formInput").submit(function (e) {
+            e.preventDefault();
+
+            dataForm = dataFromToJsonObject();
+
+            $.ajax({
+                url: "http://localhost:8080/search",
+                type: "post",
+                data: JSON.stringify(dataForm),
+                dataType: "json",
+                timeout: 5000,
+                contentType: "application/json",
+                success: function (data, textStatus, xhr) {
+                    console.log(xhr.status);
+                    if (xhr.status === 200) {
+                        $("#jsGrid1").show();
+                        showGrid(data);
+                    } else {
+                        h2.text("no content found");
+                        $("#jsGrid1").hide();
+                    }
+
+                },
+                error: function (jqXHR, exception) {
+
+
+                    if (jqXHR.status == 0) {
+                        h2.text('Not connect.\n Verify Network.');
+                    } else if (jqXHR.status == 404) {
+                        h2.text('Requested page not found. [404]');
+                    } else if (jqXHR.status == 500) {
+                        h2.text('Internal Server Error [500].');
+                    } else if (exception === 'parsererror') {
+                        h2.text('Requested JSON parse failed.');
+                    } else if (exception === 'timeout') {
+                        h2.text('Time out error.');
+                    } else if (exception === 'abort') {
+                        h2.text('Ajax request aborted.');
+                    } else {
+                        h2.text('Uncaught Error.\n' + jqXHR.responseText);
+                    }
+                }
+            });
+        });
+    });
+
+    function showGrid(dataResult) {
+        $("#jsGrid1").jsGrid({
+            height: "auto",
+            width: "100%",
+            paging: true,
+            pageLoading: true,
+            sorting: false,
+            autoload: true,
+            filtering: false,
+            pageSize: 10,
+            pageIndex: 1,
+            pageButtonCount: 5,
+            align: "right",
+
+            controller: {
+                loadData: function (filter) {
+                    let d = $.Deferred();
+                    console.log(filter);
+
+                    if (dataResult && dataResult.first === true) {
+                        let body = {
+                            data: dataResult.content,
+                            itemsCount: dataResult.totalElements
+                        }
+                        dataResult = null;
+                        d.resolve(body);
+                        return d.promise();
+                    }
+
+                    dataForm.page = filter.pageIndex - 1;
+
+                    $.ajax({
+                        url: "http://localhost:8080/search",
+                        type: "post",
+                        data: JSON.stringify(dataForm),
+                        dataType: "json",
+                        timeout: 5000,
+                        contentType: "application/json",
+                        success: function (data, textStatus, xhr) {
+                            console.log(xhr.status);
+                            if (xhr.status === 200) {
+                                let body = {
+                                    data: data.content,
+                                    itemsCount: data.totalElements
+                                }
+                                d.resolve(body);
+
+                            } else {
+                                h2.text("no contend")
+                            }
+                        },
+                        error: function (jqXHR, exception) {
+                            if (jqXHR.status === 0) {
+                                alert('Not connect.\n Verify Network.');
+                            } else if (jqXHR.status == 404) {
+                                alert('Requested page not found. [404]');
+                            } else if (jqXHR.status == 500) {
+                                alert('Internal Server Error [500].');
+                            } else if (exception === 'parsererror') {
+                                alert('Requested JSON parse failed.');
+                            } else if (exception === 'timeout') {
+                                alert('Time out error.');
+                            } else if (exception === 'abort') {
+                                alert('Ajax request aborted.');
+                            } else {
+                                alert('Uncaught Error.\n' + jqXHR.responseText);
+                            }
+                        }
+                    });
+                    return d.promise();
+                }
+            },
+
+            fields: [
+                {name: "id", type: "text"},
+                {name: "title", type: "text"},
+                {name: "description", type: "text", width: 150},
+                {name: "is published", type: "checkbox", width: 50, align: "center"},
+                {name: "status", type: "text", width: 50, align: "center"}
+            ]
+        });
+    }
+</script>
+</body>
+</html>
