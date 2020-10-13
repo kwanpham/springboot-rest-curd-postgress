@@ -34,6 +34,9 @@
 </form>
 <br>
 <h2 id="exception"></h2>
+<br>
+<button type="button" id="btnDeleteAll" onclick="deleteSelectedItems()">Delete All</button>
+<button type="button" id="btnReset">Rest all</button>
 <div id="jsGrid1"></div>
 <script>
 
@@ -110,6 +113,10 @@
         });
     });
 
+    let body = {
+        data: null,
+        itemsCount: null
+    }
     function showGrid(dataResult) {
         $("#jsGrid1").jsGrid({
             height: "auto",
@@ -130,7 +137,7 @@
                     console.log(filter);
 
                     if (dataResult && dataResult.first === true) {
-                        let body = {
+                        body = {
                             data: dataResult.content,
                             itemsCount: dataResult.totalElements
                         }
@@ -151,10 +158,13 @@
                         success: function (data, textStatus, xhr) {
                             console.log(xhr.status);
                             if (xhr.status === 200) {
-                                let body = {
+                                body = {
                                     data: data.content,
                                     itemsCount: data.totalElements
                                 }
+                                indexCheckbox= -1;
+                                selectedItems=[];
+                                document.getElementById('checkboxAll').checked=false;
                                 d.resolve(body);
 
                             } else {
@@ -162,20 +172,21 @@
                             }
                         },
                         error: function (jqXHR, exception) {
-                            if (jqXHR.status === 0) {
-                                alert('Not connect.\n Verify Network.');
+
+                            if (jqXHR.status == 0) {
+                                h2.text('Not connect.\n Verify Network.');
                             } else if (jqXHR.status == 404) {
-                                alert('Requested page not found. [404]');
+                                h2.text('Requested page not found. [404]');
                             } else if (jqXHR.status == 500) {
-                                alert('Internal Server Error [500].');
+                                h2.text('Internal Server Error [500].');
                             } else if (exception === 'parsererror') {
-                                alert('Requested JSON parse failed.');
+                                h2.text('Requested JSON parse failed.');
                             } else if (exception === 'timeout') {
-                                alert('Time out error.');
+                                h2.text('Time out error.');
                             } else if (exception === 'abort') {
-                                alert('Ajax request aborted.');
+                                h2.text('Ajax request aborted.');
                             } else {
-                                alert('Uncaught Error.\n' + jqXHR.responseText);
+                                h2.text('Uncaught Error.\n' + jqXHR.responseText);
                             }
                         }
                     });
@@ -184,14 +195,102 @@
             },
 
             fields: [
-                {name: "id", type: "text"},
+                {
+                    headerTemplate: function() {
+                        return $("<input>").attr({"type" : "checkbox" , "id" : "checkboxAll"})
+                            .on("click", function () {
+                                handleCheckboxAll(this);
+                            });
+                    },
+                    itemTemplate: function(_, item) {
+                        console.log("body data:  " +body.data);
+                        ++indexCheckbox
+                        console.log(Object.values(body.data[indexCheckbox])[0]);
+                        return $("<input>").attr({"type" : "checkbox" , "class" : "checkboxTutorial" , "data-id" : "body.data[indexCheckbox].id" })
+                            .prop("checked", $.inArray(item, selectedItems) > -1)
+                            .on("change", function () {
+                                $(this).is(":checked") ? selectItem(item.getAttribute("data-id")) : unselectItem(item.getAttribute("data-id"));
+                            });
+                    },
+                    align: "center",
+                    width: 50
+                },
+                {name: "id", type: "text" , width: 10 , align: "center"},
                 {name: "title", type: "text"},
-                {name: "description", type: "text", width: 150},
+                {name: "description", type: "text", width: 100},
                 {name: "is published", type: "checkbox", width: 50, align: "center"},
                 {name: "status", type: "text", width: 50, align: "center"}
             ]
         });
     }
+
+    var selectedItems = [];
+    var indexCheckbox= -1;
+
+    let handleCheckboxAll = (e) => {
+        console.log(e);
+        let checkboxes = Array.from(document.getElementsByClassName('checkboxTutorial'));
+        console.log(checkboxes);
+        if (e.checked == false) {
+            checkboxes.forEach(item => {
+                console.log(item);
+                if (item.checked ==true) {
+                    item.checked=false;
+                    unselectItem(item.getAttribute("data-id"))
+                }
+            })
+        } else {
+            checkboxes.forEach(item => {
+                console.log(item);
+                if (item.checked ==false) {
+                    item.checked=true;
+                    selectItem(item.getAttribute("data-id"))
+                }
+            })
+
+        }
+
+        console.log(selectedItems);
+    }
+
+    var selectItem = function(item) {
+        selectedItems.push(item);
+    };
+
+    var unselectItem = function(item) {
+        selectedItems = $.grep(selectedItems, function(i) {
+            return i !== item;
+        });
+    };
+
+    var deleteSelectedItems = function() {
+        if(!selectedItems.length || !confirm("Are you sure?"))
+            return;
+
+        $.ajax({
+            url: "http://localhost:8080/delete",
+            type: "delete",
+            data: JSON.stringify(selectedItems),
+            dataType: "json",
+            timeout: 5000,
+            contentType: "application/json",
+            success: function (data, textStatus, xhr) {
+                console.log(xhr.status);
+                if (xhr.status === 200) {
+                    h2.text("delete success")
+                }
+
+            },
+            error: errorAjax(jqXHR, exception)
+        });
+
+        let $grid = $("#jsGrid1");
+        $grid.jsGrid("option", "pageIndex", 1);
+        $grid.jsGrid("loadData");
+
+        selectedItems = [];
+    };
+
 </script>
 </body>
 </html>
