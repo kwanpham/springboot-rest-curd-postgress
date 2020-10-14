@@ -37,7 +37,7 @@ public class IndexController {
     @ResponseBody
     @PostMapping("/search")
     public ResponseEntity searchPage(@RequestBody TutorialReq req) {
-        log.info(req.toString());
+        log.debug(req.toString());
         Page<Tutorial> page= tr.findDysnamic(req.getTitle() , req.getDescription() , req.getPublished() , EnumUtils.getEnum(TutorialEnum.class,req.getStatus()) , PageRequest.of(req.getPage() , req.getSize()));
         if (page.isEmpty()){
             return ResponseEntity.noContent().build();
@@ -48,7 +48,7 @@ public class IndexController {
     @ResponseBody
     @DeleteMapping("/delete")
     public ResponseEntity deleteMutil(@RequestBody List<Long> ids) {
-        log.info(ids.toString());
+        log.debug(ids.toString());
         if (ids.isEmpty()){
             return ResponseEntity.badRequest().build();
         } else {

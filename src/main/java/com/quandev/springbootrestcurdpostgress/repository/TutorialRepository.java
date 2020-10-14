@@ -4,12 +4,13 @@ import java.util.List;
 
 import com.quandev.springbootrestcurdpostgress.model.Tutorial;
 import com.quandev.springbootrestcurdpostgress.model.TutorialEnum;
-import org.springframework.data.annotation.Transient;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.transaction.annotation.Transactional;
 
 
 public interface TutorialRepository extends JpaRepository<Tutorial, Long> {
@@ -17,7 +18,7 @@ public interface TutorialRepository extends JpaRepository<Tutorial, Long> {
 
     List<Tutorial> findByTitleContaining(String title);
 
-    @Transient
+    @Transactional
     @Modifying
     @Query("update Tutorial t set t.status = ?1 where t.id = ?2")
     void deleteToturial(TutorialEnum tutorialEnum, long id);

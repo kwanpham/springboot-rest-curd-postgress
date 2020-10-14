@@ -80,7 +80,6 @@
                 timeout: 5000,
                 contentType: "application/json",
                 success: function (data, textStatus, xhr) {
-                    console.log(xhr.status);
                     if (xhr.status === 200) {
                         $("#jsGrid1").show();
                         showGrid(data);
@@ -115,8 +114,9 @@
 
     let body = {
         data: null,
-        itemsCount: null
+        itemsCount: null,
     }
+
     function showGrid(dataResult) {
         $("#jsGrid1").jsGrid({
             height: "auto",
@@ -134,13 +134,13 @@
             controller: {
                 loadData: function (filter) {
                     let d = $.Deferred();
-                    console.log(filter);
 
                     if (dataResult && dataResult.first === true) {
                         body = {
                             data: dataResult.content,
                             itemsCount: dataResult.totalElements
                         }
+
                         dataResult = null;
                         d.resolve(body);
                         return d.promise();
@@ -156,20 +156,19 @@
                         timeout: 5000,
                         contentType: "application/json",
                         success: function (data, textStatus, xhr) {
-                            console.log(xhr.status);
                             if (xhr.status === 200) {
                                 body = {
                                     data: data.content,
                                     itemsCount: data.totalElements
                                 }
-                                indexCheckbox= -1;
-                                selectedItems=[];
-                                document.getElementById('checkboxAll').checked=false;
-                                d.resolve(body);
+
+                                document.getElementById('checkboxAll').checked = false;
+
 
                             } else {
                                 h2.text("no contend")
                             }
+                            return d.promise();
                         },
                         error: function (jqXHR, exception) {
 
@@ -196,17 +195,24 @@
 
             fields: [
                 {
-                    headerTemplate: function() {
-                        return $("<input>").attr({"type" : "checkbox" , "id" : "checkboxAll"})
+                    headerTemplate: function () {
+                        return $("<input>").attr({"type": "checkbox", "id": "checkboxAll"})
                             .on("click", function () {
                                 handleCheckboxAll(this);
                             });
                     },
-                    itemTemplate: function(_, item) {
-                        console.log("body data:  " +body.data);
+                    itemTemplate: function (_, item) {
+                        if (indexCheckbox === 9 ) {
+                            indexCheckbox = -1;
+                        }
+
                         ++indexCheckbox
                         console.log(Object.values(body.data[indexCheckbox])[0]);
-                        return $("<input>").attr({"type" : "checkbox" , "class" : "checkboxTutorial" , "data-id" : "body.data[indexCheckbox].id" })
+                        return $("<input>").attr({
+                            "type": "checkbox",
+                            "class": "checkboxTutorial",
+                            "data-id": Object.values(body.data[indexCheckbox])[0]
+                        })
                             .prop("checked", $.inArray(item, selectedItems) > -1)
                             .on("change", function () {
                                 $(this).is(":checked") ? selectItem(item.getAttribute("data-id")) : unselectItem(item.getAttribute("data-id"));
@@ -215,7 +221,7 @@
                     align: "center",
                     width: 50
                 },
-                {name: "id", type: "text" , width: 10 , align: "center"},
+                {name: "id", type: "text", width: 10, align: "center"},
                 {name: "title", type: "text"},
                 {name: "description", type: "text", width: 100},
                 {name: "is published", type: "checkbox", width: 50, align: "center"},
@@ -224,47 +230,44 @@
         });
     }
 
-    var selectedItems = [];
-    var indexCheckbox= -1;
-
     let handleCheckboxAll = (e) => {
-        console.log(e);
         let checkboxes = Array.from(document.getElementsByClassName('checkboxTutorial'));
-        console.log(checkboxes);
-        if (e.checked == false) {
+        if (e.checked === false) {
             checkboxes.forEach(item => {
-                console.log(item);
-                if (item.checked ==true) {
-                    item.checked=false;
+                if (item.checked === true) {
+                    item.checked = false;
                     unselectItem(item.getAttribute("data-id"))
                 }
             })
         } else {
             checkboxes.forEach(item => {
-                console.log(item);
-                if (item.checked ==false) {
-                    item.checked=true;
+
+                if (item.checked === false) {
+                    item.checked = true;
                     selectItem(item.getAttribute("data-id"))
                 }
             })
 
         }
 
-        console.log(selectedItems);
     }
 
-    var selectItem = function(item) {
+    var selectedItems = [];
+    var indexCheckbox = -1;
+
+    var selectItem = function (item) {
         selectedItems.push(item);
     };
 
-    var unselectItem = function(item) {
-        selectedItems = $.grep(selectedItems, function(i) {
+    var unselectItem = function (item) {
+        selectedItems = $.grep(selectedItems, function (i) {
             return i !== item;
         });
     };
 
-    var deleteSelectedItems = function() {
-        if(!selectedItems.length || !confirm("Are you sure?"))
+    var deleteSelectedItems = function () {
+        console.log(selectedItems);
+        if (!selectedItems.length || !confirm("Are you sure?"))
             return;
 
         $.ajax({
@@ -281,7 +284,24 @@
                 }
 
             },
-            error: errorAjax(jqXHR, exception)
+            error: function (jqXHR, exception) {
+
+                if (jqXHR.status == 0) {
+                    h2.text('Not connect.\n Verify Network.');
+                } else if (jqXHR.status == 404) {
+                    h2.text('Requested page not found. [404]');
+                } else if (jqXHR.status == 500) {
+                    h2.text('Internal Server Error [500].');
+                } else if (exception === 'parsererror') {
+                    h2.text('Requested JSON parse failed.');
+                } else if (exception === 'timeout') {
+                    h2.text('Time out error.');
+                } else if (exception === 'abort') {
+                    h2.text('Ajax request aborted.');
+                } else {
+                    h2.text('Uncaught Error.\n' + jqXHR.responseText);
+                }
+            }
         });
 
         let $grid = $("#jsGrid1");
