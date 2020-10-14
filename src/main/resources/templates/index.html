@@ -79,10 +79,10 @@
                 dataType: "json",
                 timeout: 5000,
                 contentType: "application/json",
-                success: function (data, textStatus, xhr) {
+                success: function (firstResult, textStatus, xhr) {
                     if (xhr.status === 200) {
                         $("#jsGrid1").show();
-                        showGrid(data);
+                        showGrid(firstResult);
                     } else {
                         h2.text("no content found");
                         $("#jsGrid1").hide();
@@ -90,8 +90,6 @@
 
                 },
                 error: function (jqXHR, exception) {
-
-
                     if (jqXHR.status == 0) {
                         h2.text('Not connect.\n Verify Network.');
                     } else if (jqXHR.status == 404) {
@@ -117,7 +115,7 @@
         itemsCount: null,
     }
 
-    function showGrid(dataResult) {
+    function showGrid(firstResult) {
         $("#jsGrid1").jsGrid({
             height: "auto",
             width: "100%",
@@ -135,13 +133,13 @@
                 loadData: function (filter) {
                     let d = $.Deferred();
 
-                    if (dataResult && dataResult.first === true) {
+                    if (firstResult && firstResult.first === true) {
                         body = {
-                            data: dataResult.content,
-                            itemsCount: dataResult.totalElements
+                            data: firstResult.content,
+                            itemsCount: firstResult.totalElements
                         }
 
-                        dataResult = null;
+                        firstResult = null;
                         d.resolve(body);
                         return d.promise();
                     }
@@ -155,20 +153,18 @@
                         dataType: "json",
                         timeout: 5000,
                         contentType: "application/json",
-                        success: function (data, textStatus, xhr) {
+                        success: function (resp, textStatus, xhr) {
                             if (xhr.status === 200) {
                                 body = {
-                                    data: data.content,
-                                    itemsCount: data.totalElements
+                                    data: resp.content,
+                                    itemsCount: resp.totalElements
                                 }
-
                                 document.getElementById('checkboxAll').checked = false;
-
-
+                                selectedItems = [];
+                                d.resolve(body);
                             } else {
                                 h2.text("no contend")
                             }
-                            return d.promise();
                         },
                         error: function (jqXHR, exception) {
 
@@ -202,20 +198,14 @@
                             });
                     },
                     itemTemplate: function (_, item) {
-                        if (indexCheckbox === 9 ) {
-                            indexCheckbox = -1;
-                        }
-
-                        ++indexCheckbox
-                        console.log(Object.values(body.data[indexCheckbox])[0]);
                         return $("<input>").attr({
                             "type": "checkbox",
                             "class": "checkboxTutorial",
-                            "data-id": Object.values(body.data[indexCheckbox])[0]
+                            "data-id": item.id
                         })
                             .prop("checked", $.inArray(item, selectedItems) > -1)
                             .on("change", function () {
-                                $(this).is(":checked") ? selectItem(item.getAttribute("data-id")) : unselectItem(item.getAttribute("data-id"));
+                                $(this).is(":checked") ? selectItem(this) : unselectItem(this);
                             });
                     },
                     align: "center",
@@ -224,7 +214,7 @@
                 {name: "id", type: "text", width: 10, align: "center"},
                 {name: "title", type: "text"},
                 {name: "description", type: "text", width: 100},
-                {name: "is published", type: "checkbox", width: 50, align: "center"},
+                {name: "published", type: "checkbox", width: 50, align: "center" , title: "Is Published"},
                 {name: "status", type: "text", width: 50, align: "center"}
             ]
         });
@@ -236,15 +226,14 @@
             checkboxes.forEach(item => {
                 if (item.checked === true) {
                     item.checked = false;
-                    unselectItem(item.getAttribute("data-id"))
+                    unselectItem(item)
                 }
             })
         } else {
             checkboxes.forEach(item => {
-
                 if (item.checked === false) {
                     item.checked = true;
-                    selectItem(item.getAttribute("data-id"))
+                    selectItem(item)
                 }
             })
 
@@ -256,12 +245,13 @@
     var indexCheckbox = -1;
 
     var selectItem = function (item) {
-        selectedItems.push(item);
+        console.log(item);
+        selectedItems.push(item.getAttribute("data-id"));
     };
 
     var unselectItem = function (item) {
         selectedItems = $.grep(selectedItems, function (i) {
-            return i !== item;
+            return i !== item.getAttribute("data-id");
         });
     };
 
@@ -274,10 +264,10 @@
             url: "http://localhost:8080/delete",
             type: "delete",
             data: JSON.stringify(selectedItems),
-            dataType: "json",
+            dataType: "text",
             timeout: 5000,
             contentType: "application/json",
-            success: function (data, textStatus, xhr) {
+            success: function (resp , status , xhr) {
                 console.log(xhr.status);
                 if (xhr.status === 200) {
                     h2.text("delete success")
@@ -285,7 +275,7 @@
 
             },
             error: function (jqXHR, exception) {
-
+                console.log(jqXHR.status)
                 if (jqXHR.status == 0) {
                     h2.text('Not connect.\n Verify Network.');
                 } else if (jqXHR.status == 404) {

@@ -47,7 +47,7 @@ public class IndexController {
 
     @ResponseBody
     @DeleteMapping("/delete")
-    public ResponseEntity deleteMutil(@RequestBody List<Long> ids) {
+    public ResponseEntity<Void> deleteMutil(@RequestBody List<Long> ids) {
         log.debug(ids.toString());
         if (ids.isEmpty()){
             return ResponseEntity.badRequest().build();
