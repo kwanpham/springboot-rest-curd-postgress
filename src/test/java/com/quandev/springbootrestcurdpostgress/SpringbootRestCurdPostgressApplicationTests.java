@@ -44,4 +44,11 @@ class SpringbootRestCurdPostgressApplicationTests {
         System.out.println(tutorials);
     }
 
+
+    @Test
+    public void testNativeQuery() {
+
+
+    }
+
 }

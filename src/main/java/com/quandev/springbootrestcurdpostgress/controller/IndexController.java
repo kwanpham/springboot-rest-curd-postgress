@@ -31,6 +31,7 @@ public class IndexController {
     @GetMapping("/")
     public String indexPage(Model model) {
         model.addAttribute("tutorialReq" , new TutorialReq());
+        model.addAttribute("customTutorial" , tr.getCustom());
         return "index";
     }
 

@@ -2,6 +2,7 @@ package com.quandev.springbootrestcurdpostgress.repository;
 
 import java.util.List;
 
+import com.quandev.springbootrestcurdpostgress.model.CustomTutorial;
 import com.quandev.springbootrestcurdpostgress.model.Tutorial;
 import com.quandev.springbootrestcurdpostgress.model.TutorialEnum;
 
@@ -33,4 +34,8 @@ public interface TutorialRepository extends JpaRepository<Tutorial, Long> {
                                 Boolean published,
                                 TutorialEnum status,
                                 Pageable pageable);
+
+    @Query(value = "SELECT SUM(count_book) AS sumCount , SUM(id) AS sumId  FROM tutorials" , nativeQuery = true)
+    CustomTutorial getCustom();
+
 }

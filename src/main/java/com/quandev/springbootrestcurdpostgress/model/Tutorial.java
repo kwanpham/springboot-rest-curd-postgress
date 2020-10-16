@@ -39,6 +39,9 @@ public class Tutorial {
     @Enumerated(EnumType.STRING)
     private TutorialEnum status;
 
+    @Column(name = "count_book")
+    private int countBook;
+
     public Tutorial() {
 
     }
